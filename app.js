@@ -46,6 +46,9 @@ let state = loadState();
 let tourActive = false;
 let tourStepIndex = 0;
 let highlightedEl = null;
+let pendingHighlightRetry = null;
+let widgetEnabled = true;
+let hoverEnabled = true;
 
 const TOUR_STEPS = [
   {
@@ -223,7 +226,7 @@ function renderLaunchGates() {
     ["Team and marketing ready", isStepComplete("invite_ops") && isStepComplete("create_discount") && isStepComplete("configure_abandon")],
   ];
   const finalPassed = gates.every((g) => g[1]);
-  if (finalPassed) completeStep("final_gate");
+  if (finalPassed && !isStepComplete("final_gate")) completeStep("final_gate");
   gateList.innerHTML = gates
     .map(([label, ok]) => `<li>${ok ? "PASS" : "PENDING"} - ${label}</li>`)
     .join("");
@@ -344,10 +347,30 @@ function renderGuidedFlows() {
 }
 
 function clearHighlight() {
+  if (pendingHighlightRetry) {
+    window.clearTimeout(pendingHighlightRetry);
+    pendingHighlightRetry = null;
+  }
   if (highlightedEl) {
     highlightedEl.classList.remove("tour-highlight");
     highlightedEl = null;
   }
+}
+
+function tryHighlightStep(step) {
+  const target = document.querySelector(step.selector);
+  if (target instanceof HTMLElement) {
+    highlightedEl = target;
+  } else {
+    const byFeature = document.querySelector(`[data-runbook-feature="${step.feature}"]`);
+    if (byFeature instanceof HTMLElement) highlightedEl = byFeature;
+  }
+  if (highlightedEl instanceof HTMLElement) {
+    highlightedEl.classList.add("tour-highlight");
+    highlightedEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
+  }
+  return false;
 }
 
 function showTourCoach(step) {
@@ -356,7 +379,18 @@ function showTourCoach(step) {
   const text = document.getElementById("tourCoachText");
   if (!box || !title || !text) return;
   title.textContent = `Step ${tourStepIndex + 1}/${TOUR_STEPS.length}: ${step.title}`;
-  text.textContent = step.description;
+  text.textContent = `${step.description} Complete this action, or skip it for now.`;
+  if (highlightedEl instanceof HTMLElement) {
+    const rect = highlightedEl.getBoundingClientRect();
+    const boxWidth = 280;
+    const placeRight = rect.right + boxWidth + 20 <= window.innerWidth;
+    const top = Math.min(window.innerHeight - 120, Math.max(12, rect.top));
+    const left = placeRight ? rect.right + 10 : Math.max(12, rect.left - boxWidth - 10);
+    box.style.top = `${top}px`;
+    box.style.left = `${left}px`;
+    box.style.right = "auto";
+    box.style.bottom = "auto";
+  }
   box.classList.remove("hidden");
 }
 
@@ -380,12 +414,14 @@ function renderTour() {
   if (!step) return;
   goToView(step.view);
   setStatus(`Guiding: ${step.title}`);
-  const target = document.querySelector(step.selector);
   clearHighlight();
-  if (target instanceof HTMLElement) {
-    highlightedEl = target;
-    highlightedEl.classList.add("tour-highlight");
-    highlightedEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  const foundNow = tryHighlightStep(step);
+  if (!foundNow) {
+    pendingHighlightRetry = window.setTimeout(() => {
+      if (!tourActive) return;
+      clearHighlight();
+      tryHighlightStep(step);
+    }, 250);
   }
   showTourCoach(step);
   window.dispatchEvent(
@@ -597,6 +633,16 @@ function bindActions() {
     tourActive = false;
     renderTour();
     setStatus("Tour paused.");
+  });
+  document.getElementById("toggleWidgetBtn")?.addEventListener("click", (evt) => {
+    widgetEnabled = !widgetEnabled;
+    window.dispatchEvent(new CustomEvent("runbook-widget-toggle", { detail: widgetEnabled }));
+    if (evt.target instanceof HTMLButtonElement) evt.target.textContent = widgetEnabled ? "Widget: on" : "Widget: off";
+  });
+  document.getElementById("toggleHoverBtn")?.addEventListener("click", (evt) => {
+    hoverEnabled = !hoverEnabled;
+    window.dispatchEvent(new CustomEvent("runbook-hover-toggle", { detail: hoverEnabled }));
+    if (evt.target instanceof HTMLButtonElement) evt.target.textContent = hoverEnabled ? "Hover notes: on" : "Hover notes: off";
   });
 
   document.getElementById("catalogGuideNextBtn")?.addEventListener("click", () => {

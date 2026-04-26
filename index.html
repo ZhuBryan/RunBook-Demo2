@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div style="position:fixed;left:14px;bottom:14px;z-index:2147483000;display:flex;gap:8px;">
+      <button id="toggleWidgetBtn" class="ghost-btn">Widget: on</button>
+      <button id="toggleHoverBtn" class="ghost-btn">Hover notes: on</button>
+    </div>
     <div class="app-shell">
       <header class="topbar">
         <div class="brand">
@@ -32,12 +36,12 @@
           <nav id="nav" class="nav-list">
             <button class="nav-item active" data-view="home">Home Ops Snapshot</button>
             <button class="nav-item" data-view="catalog" data-runbook-feature="catalog-flow">Catalog Setup</button>
-            <button class="nav-item" data-view="payments" data-runbook-feature="payments-flow">Payments & Tax</button>
+            <button class="nav-item" data-view="payments" data-runbook-feature="api-keys" data-runbook-title="Payments and API setup" data-runbook-description="Connect payments and configure secure API access dependencies.">Payments & Tax</button>
             <button class="nav-item" data-view="shipping" data-runbook-feature="shipping-flow">Shipping Rules</button>
             <button class="nav-item" data-view="returns" data-runbook-feature="returns-flow">Returns Workflow</button>
             <button class="nav-item" data-view="marketing" data-runbook-feature="marketing-flow">Marketing Automation</button>
             <button class="nav-item" data-view="team" data-runbook-feature="team-flow">Team Permissions</button>
-            <button class="nav-item" data-view="launch" data-runbook-feature="launch-flow">Launch Readiness</button>
+            <button class="nav-item" data-view="launch" data-runbook-feature="deployments" data-runbook-title="Launch readiness" data-runbook-description="Run simulation and deploy once all launch gates pass.">Launch Readiness</button>
           </nav>
           <div class="rail-card">
             <p class="rail-subtitle">Today</p>
@@ -135,7 +139,7 @@
             <article class="panel">
               <div class="panel-head">
                 <h2>Payments & Tax</h2>
-                <button id="connectPaymentsBtn" data-tour-target="payments-connect" class="primary-btn" data-runbook-feature="payments-connect" data-runbook-title="Connect Payment Processor" data-runbook-description="Connect Stripe to unlock checkout testing and payout simulation.">Connect Processor</button>
+                <button id="connectPaymentsBtn" data-tour-target="payments-connect" class="primary-btn" data-runbook-feature="api-keys" data-runbook-title="Connect Payment Processor" data-runbook-description="Connect Stripe to unlock checkout testing and payout simulation.">Connect Processor</button>
               </div>
               <p class="status-line">Processor: <span id="paymentStatus">Disconnected</span></p>
               <div class="row two-col small-cards">
@@ -147,7 +151,7 @@
             <article class="panel">
               <div class="panel-head">
                 <h2>Tax Regions</h2>
-                <button id="setTaxDefaultsBtn" class="ghost-btn" data-runbook-feature="tax-defaults" data-runbook-title="Set Tax Regions" data-runbook-description="Define tax defaults for US and EU storefront operations.">Set Defaults</button>
+                <button id="setTaxDefaultsBtn" class="ghost-btn" data-runbook-feature="api-keys" data-runbook-title="Set Tax Regions" data-runbook-description="Define tax defaults for US and EU storefront operations.">Set Defaults</button>
               </div>
               <div class="table-wrap">
                 <table>
@@ -278,7 +282,7 @@
             <article class="panel">
               <div class="panel-head">
                 <h2>Launch Readiness</h2>
-                <button id="runLaunchSimBtn" data-tour-target="launch-simulate" class="primary-btn" data-runbook-feature="launch-simulate" data-runbook-title="Run Launch Simulation" data-runbook-description="Run final readiness simulation across catalog, checkout, shipping, and support.">Run Simulation</button>
+                <button id="runLaunchSimBtn" data-tour-target="launch-simulate" class="primary-btn" data-runbook-feature="deployments" data-runbook-title="Run Launch Simulation" data-runbook-description="Run final readiness simulation across catalog, checkout, shipping, and support.">Run Simulation</button>
               </div>
               <div class="progress-track"><div id="launchProgress" class="progress-fill"></div></div>
               <p class="status-line">Readiness score: <span id="launchScoreText">42%</span></p>
@@ -299,7 +303,7 @@
       </div>
     </div>
 
-    <script src="http://127.0.0.1:3000/runbook-embed.js" data-project-id="zhubryan-runbook-demo" async></script>
+    <script src="http://127.0.0.1:3000/runbook-embed.js?v=20260426a" data-project-id="zhubryan-runbook-demo2" async></script>
     <div id="tourCoach" class="tour-coach hidden">
       <p id="tourCoachTitle" class="tour-title"></p>
       <p id="tourCoachText" class="tour-text"></p>
