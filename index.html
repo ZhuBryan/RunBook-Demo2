@@ -31,13 +31,13 @@
           <p class="rail-title">Workspace</p>
           <nav id="nav" class="nav-list">
             <button class="nav-item active" data-view="home">Home Ops Snapshot</button>
-            <button class="nav-item" data-view="catalog">Catalog Setup</button>
-            <button class="nav-item" data-view="payments">Payments & Tax</button>
-            <button class="nav-item" data-view="shipping">Shipping Rules</button>
-            <button class="nav-item" data-view="returns">Returns Workflow</button>
-            <button class="nav-item" data-view="marketing">Marketing Automation</button>
-            <button class="nav-item" data-view="team">Team Permissions</button>
-            <button class="nav-item" data-view="launch">Launch Readiness</button>
+            <button class="nav-item" data-view="catalog" data-runbook-feature="catalog-flow">Catalog Setup</button>
+            <button class="nav-item" data-view="payments" data-runbook-feature="payments-flow">Payments & Tax</button>
+            <button class="nav-item" data-view="shipping" data-runbook-feature="shipping-flow">Shipping Rules</button>
+            <button class="nav-item" data-view="returns" data-runbook-feature="returns-flow">Returns Workflow</button>
+            <button class="nav-item" data-view="marketing" data-runbook-feature="marketing-flow">Marketing Automation</button>
+            <button class="nav-item" data-view="team" data-runbook-feature="team-flow">Team Permissions</button>
+            <button class="nav-item" data-view="launch" data-runbook-feature="launch-flow">Launch Readiness</button>
           </nav>
           <div class="rail-card">
             <p class="rail-subtitle">Today</p>
@@ -97,7 +97,7 @@
             <article class="panel">
               <div class="panel-head">
                 <h2>Catalog Setup</h2>
-                <button id="addCollectionBtn" class="primary-btn" data-runbook-feature="catalog-collection-add" data-runbook-title="Add Product Collection" data-runbook-description="Create your first merchandising collection to start onboarding.">Add Collection</button>
+                <button id="addCollectionBtn" data-tour-target="catalog-collection" class="primary-btn" data-runbook-feature="catalog-collection-add" data-runbook-title="Add Product Collection" data-runbook-description="Create your first merchandising collection to start onboarding.">Add Collection</button>
               </div>
               <div class="table-wrap">
                 <table>
@@ -122,13 +122,20 @@
                 <div class="mini-card"><p class="muted">Supplier SLA</p><p id="supplierSlaValue">Not configured</p></div>
               </div>
             </article>
+            <article class="panel" data-runbook-feature="catalog-guided-flow" data-runbook-title="Catalog Guided Flow" data-runbook-description="Walk through collection, SKU thresholds, and publish readiness in sequence.">
+              <div class="panel-head">
+                <h2>Guided Setup: Catalog</h2>
+                <button id="catalogGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="catalogGuideStatus" class="status-line">Step 1/3: Add a launch collection.</p>
+            </article>
           </section>
 
           <section class="view" data-view="payments">
             <article class="panel">
               <div class="panel-head">
                 <h2>Payments & Tax</h2>
-                <button id="connectPaymentsBtn" class="primary-btn" data-runbook-feature="payments-connect" data-runbook-title="Connect Payment Processor" data-runbook-description="Connect Stripe to unlock checkout testing and payout simulation.">Connect Processor</button>
+                <button id="connectPaymentsBtn" data-tour-target="payments-connect" class="primary-btn" data-runbook-feature="payments-connect" data-runbook-title="Connect Payment Processor" data-runbook-description="Connect Stripe to unlock checkout testing and payout simulation.">Connect Processor</button>
               </div>
               <p class="status-line">Processor: <span id="paymentStatus">Disconnected</span></p>
               <div class="row two-col small-cards">
@@ -152,13 +159,20 @@
                 </table>
               </div>
             </article>
+            <article class="panel" data-runbook-feature="payments-guided-flow" data-runbook-title="Payments Guided Flow" data-runbook-description="Connect processor, verify fraud controls, and apply tax defaults in order.">
+              <div class="panel-head">
+                <h2>Guided Setup: Payments & Tax</h2>
+                <button id="paymentsGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="paymentsGuideStatus" class="status-line">Step 1/3: Connect payment processor.</p>
+            </article>
           </section>
 
           <section class="view" data-view="shipping">
             <article class="panel">
               <div class="panel-head">
                 <h2>Shipping Rules</h2>
-                <button id="createZoneBtn" class="primary-btn" data-runbook-feature="shipping-zone-create" data-runbook-title="Create Shipping Zone" data-runbook-description="Create the first shipping zone and baseline carrier rule.">Create Zone Rule</button>
+                <button id="createZoneBtn" data-tour-target="shipping-zone" class="primary-btn" data-runbook-feature="shipping-zone-create" data-runbook-title="Create Shipping Zone" data-runbook-description="Create the first shipping zone and baseline carrier rule.">Create Zone Rule</button>
               </div>
               <div id="shippingZoneState" class="muted">No custom shipping zones yet.</div>
             </article>
@@ -170,13 +184,20 @@
               </div>
               <p class="status-line">Current surcharge: <span id="expediteValue">Not configured</span></p>
             </article>
+            <article class="panel" data-runbook-feature="shipping-guided-flow" data-runbook-title="Shipping Guided Flow" data-runbook-description="Create zone, set carrier policy, and configure expedited shipping.">
+              <div class="panel-head">
+                <h2>Guided Setup: Shipping</h2>
+                <button id="shippingGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="shippingGuideStatus" class="status-line">Step 1/3: Create first shipping zone.</p>
+            </article>
           </section>
 
           <section class="view" data-view="returns">
             <article class="panel">
               <div class="panel-head">
                 <h2>Returns Policy</h2>
-                <button id="enableReturnsBtn" class="primary-btn" data-runbook-feature="returns-policy-enable" data-runbook-title="Enable Returns Eligibility" data-runbook-description="Enable return eligibility windows and reason codes for support teams.">Enable Eligibility</button>
+                <button id="enableReturnsBtn" data-tour-target="returns-enable" class="primary-btn" data-runbook-feature="returns-policy-enable" data-runbook-title="Enable Returns Eligibility" data-runbook-description="Enable return eligibility windows and reason codes for support teams.">Enable Eligibility</button>
               </div>
               <p class="status-line">Eligibility policy: <span id="returnsPolicyStatus">Disabled</span></p>
             </article>
@@ -188,13 +209,20 @@
                 <div class="mini-card"><p class="muted">Escalation Path</p><p id="escalationSla">Not set</p></div>
               </div>
             </article>
+            <article class="panel" data-runbook-feature="returns-guided-flow" data-runbook-title="Returns Guided Flow" data-runbook-description="Enable policy, assign reason codes, then configure SLAs.">
+              <div class="panel-head">
+                <h2>Guided Setup: Returns</h2>
+                <button id="returnsGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="returnsGuideStatus" class="status-line">Step 1/3: Enable returns eligibility.</p>
+            </article>
           </section>
 
           <section class="view" data-view="marketing">
             <article class="panel">
               <div class="panel-head">
                 <h2>Campaign Builder</h2>
-                <button id="createDiscountBtn" class="primary-btn" data-runbook-feature="marketing-discount-create" data-runbook-title="Create Discount Campaign" data-runbook-description="Create a first-time buyer campaign for launch week.">Create Discount</button>
+                <button id="createDiscountBtn" data-tour-target="marketing-discount" class="primary-btn" data-runbook-feature="marketing-discount-create" data-runbook-title="Create Discount Campaign" data-runbook-description="Create a first-time buyer campaign for launch week.">Create Discount</button>
               </div>
               <ul id="campaignList" class="bullet-list"></ul>
             </article>
@@ -206,13 +234,20 @@
               </div>
               <p class="status-line">Cart abandonment flow: <span id="abandonStatus">Not configured</span></p>
             </article>
+            <article class="panel" data-runbook-feature="marketing-guided-flow" data-runbook-title="Marketing Guided Flow" data-runbook-description="Create campaign, configure automation delay, and activate launch messaging.">
+              <div class="panel-head">
+                <h2>Guided Setup: Marketing</h2>
+                <button id="marketingGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="marketingGuideStatus" class="status-line">Step 1/3: Create launch discount campaign.</p>
+            </article>
           </section>
 
           <section class="view" data-view="team">
             <article class="panel">
               <div class="panel-head">
                 <h2>Team Permissions</h2>
-                <button id="inviteOpsBtn" class="primary-btn" data-runbook-feature="team-invite-ops" data-runbook-title="Invite Ops Manager" data-runbook-description="Invite operations manager with launch approval permissions.">Invite Ops Manager</button>
+                <button id="inviteOpsBtn" data-tour-target="team-invite" class="primary-btn" data-runbook-feature="team-invite-ops" data-runbook-title="Invite Ops Manager" data-runbook-description="Invite operations manager with launch approval permissions.">Invite Ops Manager</button>
               </div>
               <div class="table-wrap">
                 <table>
@@ -230,13 +265,20 @@
               </div>
               <p class="status-line">Current path: <span id="escalationPathStatus">Not configured</span></p>
             </article>
+            <article class="panel" data-runbook-feature="team-guided-flow" data-runbook-title="Team Guided Flow" data-runbook-description="Invite ops manager, define escalation, and verify permission boundaries.">
+              <div class="panel-head">
+                <h2>Guided Setup: Team</h2>
+                <button id="teamGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="teamGuideStatus" class="status-line">Step 1/3: Invite operations manager.</p>
+            </article>
           </section>
 
           <section class="view" data-view="launch">
             <article class="panel">
               <div class="panel-head">
                 <h2>Launch Readiness</h2>
-                <button id="runLaunchSimBtn" class="primary-btn" data-runbook-feature="launch-simulate" data-runbook-title="Run Launch Simulation" data-runbook-description="Run final readiness simulation across catalog, checkout, shipping, and support.">Run Simulation</button>
+                <button id="runLaunchSimBtn" data-tour-target="launch-simulate" class="primary-btn" data-runbook-feature="launch-simulate" data-runbook-title="Run Launch Simulation" data-runbook-description="Run final readiness simulation across catalog, checkout, shipping, and support.">Run Simulation</button>
               </div>
               <div class="progress-track"><div id="launchProgress" class="progress-fill"></div></div>
               <p class="status-line">Readiness score: <span id="launchScoreText">42%</span></p>
@@ -245,12 +287,26 @@
               <h2>Gating Checks</h2>
               <ul id="launchGateList" class="bullet-list"></ul>
             </article>
+            <article class="panel" data-runbook-feature="launch-guided-flow" data-runbook-title="Launch Guided Flow" data-runbook-description="Run simulation, resolve failing gates, and confirm launch approval.">
+              <div class="panel-head">
+                <h2>Guided Setup: Launch</h2>
+                <button id="launchGuideNextBtn" class="primary-btn">Next Guided Step</button>
+              </div>
+              <p id="launchGuideStatus" class="status-line">Step 1/3: Run launch simulation.</p>
+            </article>
           </section>
         </main>
       </div>
     </div>
 
     <script src="http://127.0.0.1:3000/runbook-embed.js" data-project-id="zhubryan-runbook-demo" async></script>
+    <div id="tourCoach" class="tour-coach hidden">
+      <p id="tourCoachTitle" class="tour-title"></p>
+      <p id="tourCoachText" class="tour-text"></p>
+      <div class="tour-actions">
+        <button id="tourSkipBtn" class="ghost-btn">Skip</button>
+      </div>
+    </div>
     <script src="./app.js"></script>
   </body>
 </html>

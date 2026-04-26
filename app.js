@@ -31,9 +31,87 @@ const baseState = {
   escalationConfigured: false,
   opsInvited: false,
   launchSimulated: false,
+  flowProgress: {
+    catalog: 0,
+    payments: 0,
+    shipping: 0,
+    returns: 0,
+    marketing: 0,
+    team: 0,
+    launch: 0,
+  },
 };
 
 let state = loadState();
+let tourActive = false;
+let tourStepIndex = 0;
+let highlightedEl = null;
+
+const TOUR_STEPS = [
+  {
+    id: "catalog",
+    selector: "[data-tour-target='catalog-collection']",
+    feature: "catalog-flow",
+    view: "catalog",
+    title: "Catalog setup",
+    description: "Start by adding a launch collection to ground product onboarding.",
+    done: () => isStepComplete("add_collection"),
+  },
+  {
+    id: "payments",
+    selector: "[data-tour-target='payments-connect']",
+    feature: "payments-flow",
+    view: "payments",
+    title: "Payments setup",
+    description: "Connect checkout processing before moving to shipping and tax.",
+    done: () => isStepComplete("connect_payment"),
+  },
+  {
+    id: "shipping",
+    selector: "[data-tour-target='shipping-zone']",
+    feature: "shipping-flow",
+    view: "shipping",
+    title: "Shipping setup",
+    description: "Create shipping rules so fulfillment promises are valid.",
+    done: () => isStepComplete("create_zone"),
+  },
+  {
+    id: "returns",
+    selector: "[data-tour-target='returns-enable']",
+    feature: "returns-flow",
+    view: "returns",
+    title: "Returns policy",
+    description: "Enable returns and service guardrails before launch.",
+    done: () => isStepComplete("enable_returns"),
+  },
+  {
+    id: "marketing",
+    selector: "[data-tour-target='marketing-discount']",
+    feature: "marketing-flow",
+    view: "marketing",
+    title: "Marketing activation",
+    description: "Create a campaign so acquisition journeys can be tested.",
+    done: () => isStepComplete("create_discount"),
+  },
+  {
+    id: "team",
+    selector: "[data-tour-target='team-invite']",
+    feature: "team-flow",
+    view: "team",
+    title: "Team permissions",
+    description: "Invite operations owner and set escalation controls.",
+    done: () => isStepComplete("invite_ops"),
+  },
+  {
+    id: "launch",
+    selector: "[data-tour-target='launch-simulate']",
+    feature: "launch-flow",
+    view: "launch",
+    title: "Launch readiness",
+    description: "Run simulation and resolve pending gates to finish onboarding.",
+    done: () => isStepComplete("simulate_launch"),
+  },
+];
 
 function loadState() {
   try {
@@ -58,6 +136,19 @@ function toast(message) {
   setTimeout(() => el.remove(), 1800);
 }
 
+function setStatus(message) {
+  window.dispatchEvent(new CustomEvent("runbook-assistant-status", { detail: message }));
+}
+
+function appStateForWidget() {
+  return {
+    githubConnected: isStepComplete("add_collection"),
+    apiKeyCreated: isStepComplete("connect_payment"),
+    workflowCreated: isStepComplete("create_zone"),
+    deployed: isStepComplete("simulate_launch"),
+  };
+}
+
 function goToView(view) {
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.view === view);
@@ -73,6 +164,8 @@ function completeStep(stepId) {
   renderOnboarding();
   renderLaunchGates();
   renderLaunchScore();
+  syncWidgetState();
+  maybeAdvanceTour();
 }
 
 function isStepComplete(stepId) {
@@ -167,6 +260,197 @@ function renderPersistentPanels() {
   if (escalationPathStatus) escalationPathStatus.textContent = state.escalationConfigured ? "L1 Support -> Ops Lead -> Fulfillment Eng" : "Not configured";
 }
 
+function renderGuidedFlows() {
+  const flowMap = {
+    catalog: {
+      statusId: "catalogGuideStatus",
+      buttonId: "catalogGuideNextBtn",
+      lines: [
+        "Step 1/3: Add a launch collection.",
+        "Step 2/3: Configure SKU inventory thresholds.",
+        "Step 3/3: Validate supplier SLA and publish readiness.",
+        "Catalog guided flow complete.",
+      ],
+    },
+    payments: {
+      statusId: "paymentsGuideStatus",
+      buttonId: "paymentsGuideNextBtn",
+      lines: [
+        "Step 1/3: Connect payment processor.",
+        "Step 2/3: Enable chargeback shield and payout schedule.",
+        "Step 3/3: Apply US/EU tax defaults.",
+        "Payments guided flow complete.",
+      ],
+    },
+    shipping: {
+      statusId: "shippingGuideStatus",
+      buttonId: "shippingGuideNextBtn",
+      lines: [
+        "Step 1/3: Create first shipping zone.",
+        "Step 2/3: Assign carrier SLA policy.",
+        "Step 3/3: Configure expedited surcharge.",
+        "Shipping guided flow complete.",
+      ],
+    },
+    returns: {
+      statusId: "returnsGuideStatus",
+      buttonId: "returnsGuideNextBtn",
+      lines: [
+        "Step 1/3: Enable returns eligibility.",
+        "Step 2/3: Configure return reason codes.",
+        "Step 3/3: Set inspection/refund SLAs.",
+        "Returns guided flow complete.",
+      ],
+    },
+    marketing: {
+      statusId: "marketingGuideStatus",
+      buttonId: "marketingGuideNextBtn",
+      lines: [
+        "Step 1/3: Create launch discount campaign.",
+        "Step 2/3: Configure cart abandonment sequence.",
+        "Step 3/3: Activate launch messaging.",
+        "Marketing guided flow complete.",
+      ],
+    },
+    team: {
+      statusId: "teamGuideStatus",
+      buttonId: "teamGuideNextBtn",
+      lines: [
+        "Step 1/3: Invite operations manager.",
+        "Step 2/3: Define support escalation path.",
+        "Step 3/3: Confirm permission boundaries.",
+        "Team guided flow complete.",
+      ],
+    },
+    launch: {
+      statusId: "launchGuideStatus",
+      buttonId: "launchGuideNextBtn",
+      lines: [
+        "Step 1/3: Run launch simulation.",
+        "Step 2/3: Resolve pending gating checks.",
+        "Step 3/3: Confirm launch approval packet.",
+        "Launch guided flow complete.",
+      ],
+    },
+  };
+
+  Object.entries(flowMap).forEach(([key, config]) => {
+    const progress = state.flowProgress[key] || 0;
+    const statusEl = document.getElementById(config.statusId);
+    const buttonEl = document.getElementById(config.buttonId);
+    if (statusEl) statusEl.innerHTML = `<strong>${config.lines[Math.min(progress, 3)]}</strong>`;
+    if (buttonEl) buttonEl.disabled = progress >= 3;
+  });
+}
+
+function clearHighlight() {
+  if (highlightedEl) {
+    highlightedEl.classList.remove("tour-highlight");
+    highlightedEl = null;
+  }
+}
+
+function showTourCoach(step) {
+  const box = document.getElementById("tourCoach");
+  const title = document.getElementById("tourCoachTitle");
+  const text = document.getElementById("tourCoachText");
+  if (!box || !title || !text) return;
+  title.textContent = `Step ${tourStepIndex + 1}/${TOUR_STEPS.length}: ${step.title}`;
+  text.textContent = step.description;
+  box.classList.remove("hidden");
+}
+
+function hideTourCoach() {
+  const box = document.getElementById("tourCoach");
+  if (box) box.classList.add("hidden");
+}
+
+function firstIncompleteTourIndex() {
+  const idx = TOUR_STEPS.findIndex((s) => !s.done());
+  return idx >= 0 ? idx : TOUR_STEPS.length - 1;
+}
+
+function renderTour() {
+  if (!tourActive) {
+    clearHighlight();
+    hideTourCoach();
+    return;
+  }
+  const step = TOUR_STEPS[tourStepIndex];
+  if (!step) return;
+  goToView(step.view);
+  setStatus(`Guiding: ${step.title}`);
+  const target = document.querySelector(step.selector);
+  clearHighlight();
+  if (target instanceof HTMLElement) {
+    highlightedEl = target;
+    highlightedEl.classList.add("tour-highlight");
+    highlightedEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  showTourCoach(step);
+  window.dispatchEvent(
+    new CustomEvent("runbook-active-feature", {
+      detail: {
+        feature: step.feature,
+        title: step.title,
+        description: step.description,
+      },
+    }),
+  );
+}
+
+function maybeAdvanceTour() {
+  if (!tourActive) return;
+  const step = TOUR_STEPS[tourStepIndex];
+  if (!step) return;
+  if (!step.done()) return;
+  toast(`Completed: ${step.title}`);
+  if (tourStepIndex < TOUR_STEPS.length - 1) {
+    tourStepIndex += 1;
+    renderTour();
+  } else {
+    tourActive = false;
+    renderTour();
+    setStatus("Guided onboarding complete.");
+    toast("Guided onboarding complete.");
+  }
+}
+
+function startTour() {
+  tourActive = true;
+  tourStepIndex = firstIncompleteTourIndex();
+  renderTour();
+}
+
+function highlightNextAction() {
+  const idx = firstIncompleteTourIndex();
+  const step = TOUR_STEPS[idx];
+  if (!step) return;
+  tourActive = false;
+  goToView(step.view);
+  clearHighlight();
+  const target = document.querySelector(step.selector);
+  if (target instanceof HTMLElement) {
+    highlightedEl = target;
+    highlightedEl.classList.add("tour-highlight");
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  setStatus(`Next: ${step.title}`);
+  toast(`Next action: ${step.title}`);
+}
+
+function syncWidgetState() {
+  const app = appStateForWidget();
+  window.__runbookAppState = app;
+  window.dispatchEvent(new CustomEvent("runbook-app-state", { detail: app }));
+}
+
+function advanceFlow(flowKey) {
+  state.flowProgress[flowKey] = Math.min(3, (state.flowProgress[flowKey] || 0) + 1);
+  renderGuidedFlows();
+  saveState();
+}
+
 function addCatalogRow() {
   const body = document.getElementById("catalogTableBody");
   if (!body) return;
@@ -209,6 +493,7 @@ function bindActions() {
     state.collectionsAdded += 1;
     addCatalogRow();
     completeStep("add_collection");
+    if ((state.flowProgress.catalog || 0) < 1) advanceFlow("catalog");
     toast("Collection added.");
   });
 
@@ -217,6 +502,7 @@ function bindActions() {
     document.getElementById("leadDaysValue").textContent = "9 days";
     document.getElementById("supplierSlaValue").textContent = "95% on-time";
     completeStep("configure_sku");
+    if ((state.flowProgress.catalog || 0) < 2) advanceFlow("catalog");
     toast("SKU thresholds configured.");
   });
 
@@ -224,6 +510,7 @@ function bindActions() {
     state.paymentConnected = true;
     renderPersistentPanels();
     completeStep("connect_payment");
+    if ((state.flowProgress.payments || 0) < 1) advanceFlow("payments");
     toast("Payment processor connected.");
   });
 
@@ -231,6 +518,8 @@ function bindActions() {
     state.taxConfigured = true;
     updateTaxTable();
     completeStep("set_tax");
+    if ((state.flowProgress.payments || 0) < 3) state.flowProgress.payments = 3;
+    renderGuidedFlows();
     toast("Tax defaults saved.");
   });
 
@@ -238,6 +527,7 @@ function bindActions() {
     state.zoneConfigured = true;
     renderPersistentPanels();
     completeStep("create_zone");
+    if ((state.flowProgress.shipping || 0) < 1) advanceFlow("shipping");
     toast("Shipping zone created.");
   });
 
@@ -245,6 +535,8 @@ function bindActions() {
     state.expediteConfigured = true;
     renderPersistentPanels();
     completeStep("set_expedite");
+    if ((state.flowProgress.shipping || 0) < 3) state.flowProgress.shipping = 3;
+    renderGuidedFlows();
     toast("Expedited surcharge configured.");
   });
 
@@ -252,6 +544,7 @@ function bindActions() {
     state.returnsEnabled = true;
     renderPersistentPanels();
     completeStep("enable_returns");
+    if ((state.flowProgress.returns || 0) < 1) advanceFlow("returns");
     toast("Returns policy enabled.");
   });
 
@@ -259,6 +552,7 @@ function bindActions() {
     state.campaignCreated = true;
     updateCampaignList();
     completeStep("create_discount");
+    if ((state.flowProgress.marketing || 0) < 1) advanceFlow("marketing");
     toast("Discount campaign created.");
   });
 
@@ -266,6 +560,7 @@ function bindActions() {
     state.abandonConfigured = true;
     updateCampaignList();
     completeStep("configure_abandon");
+    if ((state.flowProgress.marketing || 0) < 2) advanceFlow("marketing");
     toast("Abandonment automation active.");
   });
 
@@ -273,6 +568,7 @@ function bindActions() {
     state.escalationConfigured = true;
     renderPersistentPanels();
     completeStep("setup_escalation");
+    if ((state.flowProgress.team || 0) < 2) advanceFlow("team");
     toast("Escalation path set.");
   });
 
@@ -285,14 +581,100 @@ function bindActions() {
     }
     state.opsInvited = true;
     completeStep("invite_ops");
+    if ((state.flowProgress.team || 0) < 1) advanceFlow("team");
     toast("Operations manager invited.");
   });
 
   document.getElementById("runLaunchSimBtn")?.addEventListener("click", () => {
     state.launchSimulated = true;
     completeStep("simulate_launch");
+    if ((state.flowProgress.launch || 0) < 1) advanceFlow("launch");
     maybeCompleteFinalSteps();
     toast("Launch simulation complete.");
+  });
+
+  document.getElementById("tourSkipBtn")?.addEventListener("click", () => {
+    tourActive = false;
+    renderTour();
+    setStatus("Tour paused.");
+  });
+
+  document.getElementById("catalogGuideNextBtn")?.addEventListener("click", () => {
+    goToView("catalog");
+    if ((state.flowProgress.catalog || 0) === 0) toast("Action required: click Add Collection.");
+    else if ((state.flowProgress.catalog || 0) === 1) toast("Action required: click Configure Thresholds.");
+    else if ((state.flowProgress.catalog || 0) === 2) {
+      advanceFlow("catalog");
+      toast("Catalog readiness confirmed.");
+    }
+  });
+
+  document.getElementById("paymentsGuideNextBtn")?.addEventListener("click", () => {
+    goToView("payments");
+    if ((state.flowProgress.payments || 0) === 0) toast("Action required: connect processor.");
+    else if ((state.flowProgress.payments || 0) === 1) {
+      state.paymentConnected = true;
+      renderPersistentPanels();
+      advanceFlow("payments");
+      toast("Fraud shield and payout schedule verified.");
+    } else if ((state.flowProgress.payments || 0) === 2) toast("Action required: set tax defaults.");
+  });
+
+  document.getElementById("shippingGuideNextBtn")?.addEventListener("click", () => {
+    goToView("shipping");
+    if ((state.flowProgress.shipping || 0) === 0) toast("Action required: create zone rule.");
+    else if ((state.flowProgress.shipping || 0) === 1) {
+      advanceFlow("shipping");
+      toast("Carrier SLA policy applied.");
+    } else if ((state.flowProgress.shipping || 0) === 2) toast("Action required: set expedited surcharge.");
+  });
+
+  document.getElementById("returnsGuideNextBtn")?.addEventListener("click", () => {
+    goToView("returns");
+    if ((state.flowProgress.returns || 0) === 0) toast("Action required: enable returns eligibility.");
+    else if ((state.flowProgress.returns || 0) === 1) {
+      advanceFlow("returns");
+      toast("Return reason codes configured.");
+    } else if ((state.flowProgress.returns || 0) === 2) {
+      state.returnsSlaConfigured = true;
+      completeStep("returns_sla");
+      advanceFlow("returns");
+      renderPersistentPanels();
+      toast("Returns SLA finalized.");
+    }
+  });
+
+  document.getElementById("marketingGuideNextBtn")?.addEventListener("click", () => {
+    goToView("marketing");
+    if ((state.flowProgress.marketing || 0) === 0) toast("Action required: create discount campaign.");
+    else if ((state.flowProgress.marketing || 0) === 1) toast("Action required: configure abandonment flow.");
+    else if ((state.flowProgress.marketing || 0) === 2) {
+      advanceFlow("marketing");
+      toast("Launch messaging activated.");
+    }
+  });
+
+  document.getElementById("teamGuideNextBtn")?.addEventListener("click", () => {
+    goToView("team");
+    if ((state.flowProgress.team || 0) === 0) toast("Action required: invite operations manager.");
+    else if ((state.flowProgress.team || 0) === 1) toast("Action required: configure escalation path.");
+    else if ((state.flowProgress.team || 0) === 2) {
+      advanceFlow("team");
+      toast("Permission boundaries verified.");
+    }
+  });
+
+  document.getElementById("launchGuideNextBtn")?.addEventListener("click", () => {
+    goToView("launch");
+    if ((state.flowProgress.launch || 0) === 0) toast("Action required: run launch simulation.");
+    else if ((state.flowProgress.launch || 0) === 1) {
+      maybeCompleteFinalSteps();
+      advanceFlow("launch");
+      toast("Launch blockers reviewed.");
+    } else if ((state.flowProgress.launch || 0) === 2) {
+      advanceFlow("launch");
+      toast("Launch approval packet confirmed.");
+    }
   });
 
   document.getElementById("cmdPaletteBtn")?.addEventListener("click", () => {
@@ -327,6 +709,14 @@ function bindActions() {
   document.querySelector('[data-action="timeline-refresh"]')?.addEventListener("click", () => {
     toast("Timeline synchronized with operations events.");
   });
+
+  window.addEventListener("runbook-start-tour", () => startTour());
+  window.addEventListener("runbook-what-next", () => highlightNextAction());
+  window.addEventListener("runbook-ui-action", (evt) => {
+    const detail = evt?.detail || {};
+    if (detail.type === "start_tour") startTour();
+    if (detail.type === "highlight") highlightNextAction();
+  });
 }
 
 function init() {
@@ -338,6 +728,9 @@ function init() {
   for (let i = 1; i <= state.collectionsAdded; i += 1) addCatalogRow();
   maybeCompleteFinalSteps();
   renderLaunchScore();
+  renderGuidedFlows();
+  syncWidgetState();
+  setStatus("Ready to guide");
   saveState();
 }
 
